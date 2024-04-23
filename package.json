@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/Somtico/tinyapp/issues"
   },
-  "homepage": "https://github.com/Somtico/tinyapp#readme"
+  "homepage": "https://github.com/Somtico/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
 }
