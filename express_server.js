@@ -7,15 +7,16 @@ const PORT = 8080;
 app.set("view engine", "ejs");
 
 // middleware
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 
-function generateRandomString() {
-  let result = '';
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
- 
+const generateRandomString = () => {
+  let result = "";
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
   for (let i = 0; i < 6; i++) {
-    randomIndex = Math.floor(Math.random() * chars.length);
+    const randomIndex = Math.floor(Math.random() * chars.length);
     result += chars.charAt(randomIndex);
   }
 
@@ -23,7 +24,7 @@ function generateRandomString() {
 };
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
+  b2xVn2: "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com",
 };
 
@@ -49,7 +50,10 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
+  };
   res.render("urls_show", templateVars);
 });
 
