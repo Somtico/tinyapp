@@ -74,8 +74,11 @@ app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL; // Add new URL to database
   res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
+});
 
-  console.log(req.body); // Log the POST request body to the console
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username); 
+  res.redirect("/urls");
 });
 
 app.post("/urls/:id/delete", (req, res) => {
