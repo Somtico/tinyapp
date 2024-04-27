@@ -1,3 +1,4 @@
+<!-- _header.ejs -->
 <header>
   <nav class="navbar navbar-expand-md navbar-dark bg-success">
     <a class="navbar-brand" href="/urls">TinyApp</a>
@@ -18,5 +19,21 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-  </nav>
+    <div class="form-group mb-2">
+      <form
+        class="form-inline d-flex justify-content-center"
+        action="/login"
+        method="POST"
+      >
+        <input
+          class="form-control"
+          type="text"
+          name="username"
+          placeholder="Username"
+          style="width: 300px; margin: 0.5em"
+        />
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+    </div>
+</nav>
 </header>
