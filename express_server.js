@@ -33,17 +33,27 @@ app.use(cookieParser());
 // Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-const generateRandomString = () => {
-  let result = "";
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+// Function to generate a unique id
+const generateUniqueId = () => {
+  return Math.random().toString(36).substring(2, 8);
+};
 
-  for (let i = 0; i < 6; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    result += chars.charAt(randomIndex);
+// Function to get user information
+const getUserInfo = (req) => {
+  const user_id = req.cookies.user_id;
+  const email = users[user_id] ? users[user_id].email : null;
+  const password = users[user_id] ? users[user_id].password : null;
+  return { user_id, email, password };
+};
+
+//Function to get user by email
+const getUserByEmail = (email) => {
+  for (const userId in users) {
+    if (users[userId]["email"] === email) {
+      return users[userId];
+    }
   }
-
-  return result;
+  return null;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,14 +77,6 @@ const users = {
     password: "dishwasher-funk",
   },
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// Listener
-///////////////////////////////////////////////////////////////////////////////
-
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
-});
 
 ///////////////////////////////////////////////////////////////////////////////
 // Routes
@@ -105,14 +107,13 @@ app.get("/hello", (req, res) => {
  * Show the client the "New User Registration" form.
  */
 app.get("/register", (req, res) => {
-  const user_id = req.cookies.user_id;
-  const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].password : null;
+  const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
     urls: urlDatabase,
-    user_id: user_id,
-    email: email,
-    password: password,
+    user_id,
+    email,
+    password,
+    error: null,
   };
   res.render("register", templateVars);
 });
@@ -122,11 +123,26 @@ app.get("/register", (req, res) => {
  * Handle the registration form SUBMISSION!
  */
 app.post("/register", (req, res) => {
-  const user_id = generateRandomString();
-  const email = req.body.email;
-  const password = req.body.password;
-  users[user_id] = { id: user_id, email: email, password: password };
+  const { email, password } = req.body;
+
+  // Check if email and password fields are empty
+  if (!email || !password) {
+    return res.status(400).send("Email and password fields cannot be empty.");
+  }
+
+  // Check if user already exists
+  if (getUserByEmail(email)) {
+    return res.status(400).send("User already exists.");
+  }
+
+  // Generate a unique id for new user
+  const user_id = generateUniqueId();
+
+  // Add user info to users database
+  users[user_id] = { id: user_id, email, password };
   console.log(users);
+
+  // Set user_id cookie and redirect to /urls page
   res.cookie("user_id", user_id);
   res.redirect("/urls");
 });
@@ -145,7 +161,10 @@ app.post("/login", (req, res) => {
  * Handle the sign-out form SUBMISSION!
  */
 app.post("/logout", (req, res) => {
-  res.clearCookie("email");
+  const cookies = Object.keys(req.cookies);
+  cookies.forEach((cookie) => {
+    res.clearCookie(cookie);
+  });
   res.redirect("/urls");
 });
 
@@ -154,14 +173,12 @@ app.post("/logout", (req, res) => {
  * Show the urls page
  */
 app.get("/urls", (req, res) => {
-  const user_id = req.cookies.user_id;
-  const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].password : null;
+  const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
     urls: urlDatabase,
-    user_id: user_id,
-    email: email,
-    password: password,
+    user_id,
+    email,
+    password,
   };
   res.render("urls_index", templateVars);
 });
@@ -171,14 +188,12 @@ app.get("/urls", (req, res) => {
  * Show the page for the new url form
  */
 app.get("/urls/new", (req, res) => {
-  const user_id = req.cookies.user_id;
-  const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].password : null;
+  const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
     urls: urlDatabase,
-    user_id: user_id,
-    email: email,
-    password: password,
+    user_id,
+    email,
+    password,
   };
   res.render("urls_new", templateVars);
 });
@@ -188,7 +203,7 @@ app.get("/urls/new", (req, res) => {
  * Handle the NEW url submission form
  */
 app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString();
+  const shortURL = generateUniqueId();
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL; // Add new URL to database
   res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
@@ -199,15 +214,12 @@ app.post("/urls", (req, res) => {
  * Show the page for the newly created url
  */
 app.get("/urls/:id", (req, res) => {
-  const user_id = req.cookies.user_id;
-  const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].password : null;
+  const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
-    id: req.params.id,
-    longURL: urlDatabase[req.params.id],
-    user_id: user_id,
-    email: email,
-    password: password,
+    urls: urlDatabase,
+    user_id,
+    email,
+    password,
   };
   res.render("urls_show", templateVars);
 });
@@ -240,3 +252,12 @@ app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id];
   res.redirect("/urls");
 });
+
+///////////////////////////////////////////////////////////////////////////////
+// Listener
+///////////////////////////////////////////////////////////////////////////////
+
+app.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
+
