@@ -30,6 +30,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 ///////////////////////////////////////////////////////////////////////////////
+// Users "Database"
+///////////////////////////////////////////////////////////////////////////////
+
+const urlDatabase = {
+  b2xVn2: "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com",
+};
+
+const users = {
+  user1RandomID: {
+    id: "user1RandomID",
+    email: "user1@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // Helpers
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -65,28 +87,6 @@ const cleanup = (req, res) => {
   cookieNames.forEach((cookieName) => {
     res.clearCookie(cookieName);
   });
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// Users "Database"
-///////////////////////////////////////////////////////////////////////////////
-
-const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
-};
-
-const users = {
-  user1RandomID: {
-    id: "user1RandomID",
-    email: "user1@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
 };
 
 ///////////////////////////////////////////////////////////////////////////////
