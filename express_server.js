@@ -118,15 +118,7 @@ app.get("/hello", (req, res) => {
  * Show the client the "New User Registration" page.
  */
 app.get("/register", (req, res) => {
-  // Check if the user is logged in (by checking if user_id cookie is present)
-  if (req.cookies.user_id) {
-    return res
-      .status(400)
-      .send(
-        "You are already logged in. Please log out first or clear your cookies to access this page."
-      );
-  } else {
-    const { user_id, email, password } = getUserInfo(req);
+  const { user_id, email, password } = getUserInfo(req);
     const templateVars = {
       urls: urlDatabase,
       user_id,
@@ -135,7 +127,6 @@ app.get("/register", (req, res) => {
       error: null,
     };
     res.render("register", templateVars);
-  }
 });
 
 /**
@@ -171,15 +162,7 @@ app.post("/register", (req, res) => {
  * Show the client the sign-in page.
  */
 app.get("/login", (req, res) => {
-  // Check if the user is logged in (by checking if user_id cookie is present)
-  if (req.cookies.user_id) {
-    return res
-      .status(400)
-      .send(
-        "You are already logged in. Please log out first or clear your cookies to access this page."
-      );
-  } else {
-    const { user_id, email, password } = getUserInfo(req);
+  const { user_id, email, password } = getUserInfo(req);
     const templateVars = {
       urls: urlDatabase,
       user_id,
@@ -188,7 +171,6 @@ app.get("/login", (req, res) => {
       error: null,
     };
     res.render("login", templateVars);
-  }
 });
 
 /**
@@ -209,9 +191,18 @@ app.post("/login", (req, res) => {
   // If user email does not exist, return an error
   if (!user) {
     return res
-      .status(400)
+      .status(403)
       .send(
-        "The account was not found. Please check that you have the correct email."
+        "The account was not found. Please register an account first."
+      );
+  }
+
+  // If user provided password does not match the one in the database, return an error
+  if (password !== user.password) {
+    return res
+      .status(403)
+      .send(
+        "Password is incorrect!"
       );
   }
 
@@ -228,7 +219,7 @@ app.post("/login", (req, res) => {
  */
 app.post("/logout", (req, res) => {
   cleanup(req, res);
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 /**
