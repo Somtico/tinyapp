@@ -17,6 +17,8 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <a class="nav-item nav-link" href="/login">Login</a>
+        <a class="nav-item nav-link" href="/register">Register</a>
       </div>
     </div>
     <% if (email) { %>
@@ -24,13 +26,6 @@
         <p style="margin: 1em">Logged in as: <%= email %></p>
         <form action="/logout" method="POST">
           <button type="submit" class="btn btn-primary" style="background-color: red; margin: 0.5em">Logout</button>
-        </form>
-      </div>
-    <% } else { %>
-      <div class="form-group mb-2">
-        <form class="form-inline d-flex justify-content-center" action="/login" method="POST">
-          <input class="form-control" type="text" name="email" placeholder="Email" style="width: 300px; margin: 0.5em" />
-          <button type="submit" class="btn btn-primary">Login</button>
         </form>
       </div>
     <% } %>
