@@ -46,7 +46,7 @@ const getUserInfo = (req) => {
   return { user_id, email, password };
 };
 
-//Function to get user by email
+// Function to get user by email
 const getUserByEmail = (email) => {
   for (const userId in users) {
     if (users[userId]["email"] === email) {
@@ -54,6 +54,17 @@ const getUserByEmail = (email) => {
     }
   }
   return null;
+};
+
+// Function to delete all cookies
+const cleanup = (req, res) => {
+  // Get all cookie names
+  const cookieNames = Object.keys(req.cookies);
+
+  // Delete each cookie
+  cookieNames.forEach((cookieName) => {
+    res.clearCookie(cookieName);
+  });
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,18 +115,27 @@ app.get("/hello", (req, res) => {
 
 /**
  * GET /register
- * Show the client the "New User Registration" form.
+ * Show the client the "New User Registration" page.
  */
 app.get("/register", (req, res) => {
-  const { user_id, email, password } = getUserInfo(req);
-  const templateVars = {
-    urls: urlDatabase,
-    user_id,
-    email,
-    password,
-    error: null,
-  };
-  res.render("register", templateVars);
+  // Check if the user is logged in (by checking if user_id cookie is present)
+  if (req.cookies.user_id) {
+    return res
+      .status(400)
+      .send(
+        "You are already logged in. Please log out first or clear your cookies to access this page."
+      );
+  } else {
+    const { user_id, email, password } = getUserInfo(req);
+    const templateVars = {
+      urls: urlDatabase,
+      user_id,
+      email,
+      password,
+      error: null,
+    };
+    res.render("register", templateVars);
+  }
 });
 
 /**
@@ -130,7 +150,7 @@ app.post("/register", (req, res) => {
     return res.status(400).send("Email and password fields cannot be empty.");
   }
 
-  // Check if user already exists
+  // Check if user email already exists
   if (getUserByEmail(email)) {
     return res.status(400).send("User already exists.");
   }
@@ -140,7 +160,6 @@ app.post("/register", (req, res) => {
 
   // Add user info to users database
   users[user_id] = { id: user_id, email, password };
-  console.log(users);
 
   // Set user_id cookie and redirect to /urls page
   res.cookie("user_id", user_id);
@@ -148,11 +167,58 @@ app.post("/register", (req, res) => {
 });
 
 /**
+ * GET /login
+ * Show the client the sign-in page.
+ */
+app.get("/login", (req, res) => {
+  // Check if the user is logged in (by checking if user_id cookie is present)
+  if (req.cookies.user_id) {
+    return res
+      .status(400)
+      .send(
+        "You are already logged in. Please log out first or clear your cookies to access this page."
+      );
+  } else {
+    const { user_id, email, password } = getUserInfo(req);
+    const templateVars = {
+      urls: urlDatabase,
+      user_id,
+      email,
+      password,
+      error: null,
+    };
+    res.render("login", templateVars);
+  }
+});
+
+/**
  * POST /login (in _header.ejs)
  * Handle the sign-in form SUBMISSION!
  */
 app.post("/login", (req, res) => {
-  res.cookie("email", req.body.email);
+  const { email, password } = req.body;
+
+  // Check if email and password fields are empty
+  if (!email || !password) {
+    return res.status(400).send("Please enter your email and password.");
+  }
+
+  // Get user data
+  const user = getUserByEmail(email);
+
+  // If user email does not exist, return an error
+  if (!user) {
+    return res
+      .status(400)
+      .send(
+        "The account was not found. Please check that you have the correct email."
+      );
+  }
+
+  // Get user_id
+  const user_id = user.id;
+
+  res.cookie("user_id", user_id);
   res.redirect("/urls");
 });
 
@@ -161,10 +227,7 @@ app.post("/login", (req, res) => {
  * Handle the sign-out form SUBMISSION!
  */
 app.post("/logout", (req, res) => {
-  const cookies = Object.keys(req.cookies);
-  cookies.forEach((cookie) => {
-    res.clearCookie(cookie);
-  });
+  cleanup(req, res);
   res.redirect("/urls");
 });
 
@@ -254,10 +317,16 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 ///////////////////////////////////////////////////////////////////////////////
-// Listener
+// Listeners
 ///////////////////////////////////////////////////////////////////////////////
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+// Listen for the SIGINT signal (Ctrl+C) to gracefully shutdown
+process.on("SIGINT", () => {
+  console.log("\nCtrl+C pressed, server is shutting down...");
+  process.exit(0);
 });
 
+// Listen for server startup command
+const server = app.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
