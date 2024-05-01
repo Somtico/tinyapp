@@ -17,11 +17,14 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <a class="nav-item nav-link" href="/login">Login</a>
-        <a class="nav-item nav-link" href="/register">Register</a>
       </div>
     </div>
-    <% if (email) { %>
+    <% if (!email) { %>
+      <div class="navbar-nav">
+          <a class="nav-item nav-link" href="/login">Login</a>
+          <a class="nav-item nav-link" href="/register">Register</a>
+      </div>
+    <% } else if (email) { %>
       <div class="navbar-nav">
         <p style="margin: 1em">Logged in as: <%= email %></p>
         <form action="/logout" method="POST">
