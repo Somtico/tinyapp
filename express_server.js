@@ -49,6 +49,11 @@ const users = {
     email: "user2@example.com",
     password: "dishwasher-funk",
   },
+  user3RandomID: {
+    id: "user3RandomID",
+    email: "somtoufondu@gmail.com",
+    password: "1",
+  },
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -110,7 +115,7 @@ app.get("/hello", (req, res) => {
 });
 
 ///////////////////////////////////////////////////////////////////////////////
-// User Registration / Login Routes
+// User Registration / Login / Logout Routes
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -119,14 +124,29 @@ app.get("/hello", (req, res) => {
  */
 app.get("/register", (req, res) => {
   const { user_id, email, password } = getUserInfo(req);
-    const templateVars = {
-      urls: urlDatabase,
-      user_id,
-      email,
-      password,
-      error: null,
-    };
+  const templateVars = {
+    urls: urlDatabase,
+    user_id,
+    email,
+    password,
+    error: null,
+  };
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, render urls page instead
+      res.render("urls_index", templateVars);
+    } else {
+      // If user data is not found, allow request
+      res.render("register", templateVars);
+    }
+  } else {
+    // If user_id is not detected, allow request
     res.render("register", templateVars);
+  }
 });
 
 /**
@@ -135,26 +155,28 @@ app.get("/register", (req, res) => {
  */
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
+  const templateVars = { email };
 
-  // Check if email and password fields are empty
   if (!email || !password) {
-    return res.status(400).send("Email and password fields cannot be empty.");
+    // If email and password fields are empty
+    res.status(400); // Set error status
+    templateVars.error = "Email and password are required."; // Store error message in template
+
+    res.render("register", templateVars);
+  } else if (getUserByEmail(email)) {
+    // If user email already exists
+    res.status(400);
+    templateVars.error = "User already exists. Please login";
+    res.render("login", templateVars);
+  } else {
+    const user_id = generateUniqueId(); // Generate a unique id for new user
+
+    users[user_id] = { id: user_id, email, password }; // Add user info to users database
+
+    res.cookie("user_id", user_id); // Set user_id cookie and redirect to /urls page
+
+    res.redirect("/urls");
   }
-
-  // Check if user email already exists
-  if (getUserByEmail(email)) {
-    return res.status(400).send("User already exists.");
-  }
-
-  // Generate a unique id for new user
-  const user_id = generateUniqueId();
-
-  // Add user info to users database
-  users[user_id] = { id: user_id, email, password };
-
-  // Set user_id cookie and redirect to /urls page
-  res.cookie("user_id", user_id);
-  res.redirect("/urls");
 });
 
 /**
@@ -162,15 +184,33 @@ app.post("/register", (req, res) => {
  * Show the client the sign-in page.
  */
 app.get("/login", (req, res) => {
+  // Get user info
   const { user_id, email, password } = getUserInfo(req);
-    const templateVars = {
-      urls: urlDatabase,
-      user_id,
-      email,
-      password,
-      error: null,
-    };
+  
+  // Construct the template
+  const templateVars = {
+    urls: urlDatabase,
+    user_id,
+    email,
+    password,
+    error: null,
+  };
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, render urls page instead
+      res.render("urls_index", templateVars);
+    } else {
+      // If user data is not found, allow request
+      res.render("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, allow request
     res.render("login", templateVars);
+  }
 });
 
 /**
@@ -179,38 +219,34 @@ app.get("/login", (req, res) => {
  */
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
+  const templateVars = { email };
+  const user = getUserByEmail(email); // Get user data
 
-  // Check if email and password fields are empty
   if (!email || !password) {
-    return res.status(400).send("Please enter your email and password.");
+    // If email and password fields are empty
+    res.status(400);
+    templateVars.error = "Email and password are required.";
+    res.render("login", templateVars);
+  } else if (!user) {
+    // If user email does not exist, return an error
+    res.status(403);
+    templateVars.error =
+      "The account was not found. Please register an account first.";
+    res.render("register", templateVars);
+  } else if (password !== user.password) {
+    // If user provided password does not match the one in the database, return an error
+    res.status(403);
+    templateVars.error = "Password is incorrect!";
+    res.render("login", templateVars);
+  } else {
+    // Get user_id
+    const user_id = user.id;
+
+    console.log(users);
+
+    res.cookie("user_id", user_id);
+    res.redirect("/urls");
   }
-
-  // Get user data
-  const user = getUserByEmail(email);
-
-  // If user email does not exist, return an error
-  if (!user) {
-    return res
-      .status(403)
-      .send(
-        "The account was not found. Please register an account first."
-      );
-  }
-
-  // If user provided password does not match the one in the database, return an error
-  if (password !== user.password) {
-    return res
-      .status(403)
-      .send(
-        "Password is incorrect!"
-      );
-  }
-
-  // Get user_id
-  const user_id = user.id;
-
-  res.cookie("user_id", user_id);
-  res.redirect("/urls");
 });
 
 /**
@@ -221,6 +257,10 @@ app.post("/logout", (req, res) => {
   cleanup(req, res);
   res.redirect("/login");
 });
+
+///////////////////////////////////////////////////////////////////////////////
+// URLs Routes
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * GET /urls
@@ -233,6 +273,7 @@ app.get("/urls", (req, res) => {
     user_id,
     email,
     password,
+    error: null,
   };
   res.render("urls_index", templateVars);
 });
@@ -242,14 +283,37 @@ app.get("/urls", (req, res) => {
  * Show the page for the new url form
  */
 app.get("/urls/new", (req, res) => {
+  // Get user info
   const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
   const templateVars = {
     urls: urlDatabase,
     user_id,
     email,
     password,
+    error: null,
   };
-  res.render("urls_new", templateVars);
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, allow the request
+      res.render("urls_new", templateVars);
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.render("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
+  }
 });
 
 /**
@@ -257,10 +321,39 @@ app.get("/urls/new", (req, res) => {
  * Handle the NEW url submission form
  */
 app.post("/urls", (req, res) => {
-  const shortURL = generateUniqueId();
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL; // Add new URL to database
-  res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
+  // Get user info
+  const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
+  const templateVars = {
+    urls: urlDatabase,
+    user_id,
+    email,
+    password,
+  };
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, allow the request
+      const shortURL = generateUniqueId();
+      const longURL = req.body.longURL;
+      urlDatabase[shortURL] = longURL; // Add new URL to database
+      res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.render("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
+  }
 });
 
 /**
@@ -270,11 +363,20 @@ app.post("/urls", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
-    urls: urlDatabase,
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
     user_id,
     email,
     password,
+    error: null,
   };
+
+  if (!urlDatabase[req.params.id]) {
+    // If the shortURL does not exist in the database, render error
+    res.status(400).render("error", templateVars);
+  }
+
+  // If it exists, then allow the request
   res.render("urls_show", templateVars);
 });
 
@@ -283,6 +385,22 @@ app.get("/urls/:id", (req, res) => {
  * Redirect to the longURL page
  */
 app.get("/u/:id", (req, res) => {
+  const { user_id, email, password } = getUserInfo(req);
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id],
+    user_id,
+    email,
+    password,
+    error: null,
+  };
+
+  if (!urlDatabase[req.params.id]) {
+    // If the shortURL does not exist in the database, render error
+    res.status(400).render("error", templateVars);
+  }
+
+  // If it exists, then allow the request
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
