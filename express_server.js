@@ -186,7 +186,7 @@ app.post("/register", (req, res) => {
 app.get("/login", (req, res) => {
   // Get user info
   const { user_id, email, password } = getUserInfo(req);
-  
+
   // Construct the template
   const templateVars = {
     urls: urlDatabase,
@@ -371,13 +371,15 @@ app.get("/urls/:id", (req, res) => {
     error: null,
   };
 
-  if (!urlDatabase[req.params.id]) {
-    // If the shortURL does not exist in the database, render error
-    res.status(400).render("error", templateVars);
-  }
+  console.log(templateVars);
 
-  // If it exists, then allow the request
-  res.render("urls_show", templateVars);
+  if (!urlDatabase[templateVars.id]) {
+    // If the shortURL id does not exist in the database, render error
+    res.status(400).render("error", templateVars);
+  } else {
+    // If it exists, then allow the request
+    res.render("urls_show", templateVars);
+  }
 });
 
 /**
@@ -395,14 +397,13 @@ app.get("/u/:id", (req, res) => {
     error: null,
   };
 
-  if (!urlDatabase[req.params.id]) {
+  if (!urlDatabase[templateVars.id]) {
     // If the shortURL does not exist in the database, render error
     res.status(400).render("error", templateVars);
+  } else {
+    // If it exists, then allow the request
+    res.redirect(templateVars.longURL);
   }
-
-  // If it exists, then allow the request
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
 });
 
 /**
