@@ -1,7 +1,7 @@
 <!-- _header.ejs -->
 <header>
   <nav class="navbar navbar-expand-md navbar-dark bg-success">
-    <a class="navbar-brand" href="/urls">TinyApp</a>
+    <a class="navbar-brand" href="/urls" style="color: white;" onmouseover="this.style.color='grey'" onmouseout="this.style.color='white'">TinyApp</a>
     <button
       class="navbar-toggler"
       type="button"
@@ -15,21 +15,21 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
       <div class="navbar-nav">
-        <a class="nav-item nav-link" href="/urls">My URLs</a>
-        <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <a class="nav-item nav-link" href="/urls" style="color: white;" onmouseover="this.style.color='grey'" onmouseout="this.style.color='white'">My URLs</a>
+        <a class="nav-item nav-link" href="/urls/new" style="color: white;" onmouseover="this.style.color='grey'" onmouseout="this.style.color='white'">Create New URL</a>
       </div>
     </div>
-    <% if (email && error === null) { %>
+    <% if (email) { %>
       <div class="navbar-nav">
-        <p style="margin: 1em">Logged in as: <%= email %></p>
+        <p style="margin: 1em; color: white;">Logged in as: <%= email %></p>
         <form action="/logout" method="POST">
           <button type="submit" class="btn btn-primary" style="background-color: red; margin: 0.5em">Logout</button>
         </form>
       </div>
     <% } else { %>
       <div class="navbar-nav">
-        <a class="nav-item nav-link" href="/login">Login</a>
-        <a class="nav-item nav-link" href="/register">Register</a>
+        <a class="nav-item nav-link" href="/login" style="color: white;" onmouseover="this.style.color='grey'" onmouseout="this.style.color='white'">Login</a>
+        <a class="nav-item nav-link" href="/register" style="color: white;" onmouseover="this.style.color='grey'" onmouseout="this.style.color='white'">Register</a>
       </div>
     <% } %>
   </nav>

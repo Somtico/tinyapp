@@ -30,27 +30,41 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 ///////////////////////////////////////////////////////////////////////////////
-// Users "Database"
+// Databases
 ///////////////////////////////////////////////////////////////////////////////
 
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "q0ju1d",
+  },
+  x5YZab: {
+    longURL: "https://www.example.com",
+    userID: "aJ48lW", // Same userID as b6UTxQ
+  },
+  p9RstU: {
+    longURL: "https://www.stackoverflow.com",
+    userID: "x9kP2n",
+  },
 };
 
 const users = {
-  user1RandomID: {
-    id: "user1RandomID",
+  aJ48lW: {
+    id: "aJ48lW",
     email: "user1@example.com",
-    password: "purple-monkey-dinosaur",
+    password: "p",
   },
-  user2RandomID: {
-    id: "user2RandomID",
+  q0ju1d: {
+    id: "q0ju1d",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: "d",
   },
-  user3RandomID: {
-    id: "user3RandomID",
+  tra1dh: {
+    id: "tra1dh",
     email: "somtoufondu@gmail.com",
     password: "1",
   },
@@ -81,6 +95,20 @@ const getUserByEmail = (email) => {
     }
   }
   return null;
+};
+
+// Function to return the URLs created by a user
+const getUserUrls = (user_id) => {
+  const userUrlDatabase = {};
+
+  for (let id in urlDatabase) {
+    if (urlDatabase[id].userID === user_id) {
+      // If there are short URLs created by the user, add them to the userUrlDatabase object
+      userUrlDatabase[id] = urlDatabase[id].longURL;
+    }
+  }
+
+  return userUrlDatabase;
 };
 
 // Function to delete all cookies
@@ -123,9 +151,12 @@ app.get("/hello", (req, res) => {
  * Show the client the "New User Registration" page.
  */
 app.get("/register", (req, res) => {
+  // Get user info
   const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
   const templateVars = {
-    urls: urlDatabase,
+    urls: getUserUrls(user_id),
     user_id,
     email,
     password,
@@ -137,8 +168,15 @@ app.get("/register", (req, res) => {
     const user = users[user_id]; // Attempt to get user data from the database
 
     if (user) {
-      // If user data is found, render urls page instead
-      res.render("urls_index", templateVars);
+      // If user data is found, check whether there is data in their urls database
+      if (!Object.keys(getUserUrls(user_id)).length) {
+        templateVars.error =
+          "Your short URLs list is empty. Create one now to begin your list.";
+        res.render("urls_new", templateVars);
+      } else {
+        // If userUrlDatabase is not empty, show only the short URLs created by the user
+        res.render("urls_index", templateVars);
+      }
     } else {
       // If user data is not found, allow request
       res.render("register", templateVars);
@@ -189,7 +227,7 @@ app.get("/login", (req, res) => {
 
   // Construct the template
   const templateVars = {
-    urls: urlDatabase,
+    urls: getUserUrls(user_id),
     user_id,
     email,
     password,
@@ -201,8 +239,15 @@ app.get("/login", (req, res) => {
     const user = users[user_id]; // Attempt to get user data from the database
 
     if (user) {
-      // If user data is found, render urls page instead
-      res.render("urls_index", templateVars);
+      // If user data is found, check whether there is data in their urls database
+      if (!Object.keys(getUserUrls(user_id)).length) {
+        templateVars.error =
+          "Your short URLs list is empty. Create one now to begin your list.";
+        res.render("urls_new", templateVars);
+      } else {
+        // If userUrlDatabase is not empty, show only the short URLs created by the user
+        res.render("urls_index", templateVars);
+      }
     } else {
       // If user data is not found, allow request
       res.render("login", templateVars);
@@ -242,8 +287,6 @@ app.post("/login", (req, res) => {
     // Get user_id
     const user_id = user.id;
 
-    console.log(users);
-
     res.cookie("user_id", user_id);
     res.redirect("/urls");
   }
@@ -267,15 +310,45 @@ app.post("/logout", (req, res) => {
  * Show the urls page
  */
 app.get("/urls", (req, res) => {
+  // Get user info
   const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
   const templateVars = {
-    urls: urlDatabase,
+    urls: getUserUrls(user_id),
     user_id,
     email,
     password,
     error: null,
   };
-  res.render("urls_index", templateVars);
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, check if userUrlDatabase is empty
+      if (!Object.keys(getUserUrls(user_id)).length) {
+        templateVars.error =
+          "Your short URLs list is empty. Create one now to begin your list.";
+        res.render("urls_new", templateVars);
+      } else {
+        // If userUrlDatabase is not empty, show only the short URLs created by the user
+        res.render("urls_index", templateVars);
+      }
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.redirect("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
+  }
+  console.log(templateVars);
 });
 
 /**
@@ -326,7 +399,8 @@ app.post("/urls", (req, res) => {
 
   // Construct the template
   const templateVars = {
-    urls: urlDatabase,
+    urls: getUserUrls(user_id),
+    id: req.params.id,
     user_id,
     email,
     password,
@@ -340,7 +414,8 @@ app.post("/urls", (req, res) => {
       // If user data is found, allow the request
       const shortURL = generateUniqueId();
       const longURL = req.body.longURL;
-      urlDatabase[shortURL] = longURL; // Add new URL to database
+      const userID = user_id;
+      urlDatabase[shortURL] = { longURL, userID }; // Add new URL to database
       res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
     } else {
       // If user data is not found, redirect to login and show error
@@ -354,31 +429,53 @@ app.post("/urls", (req, res) => {
     templateVars.error = "Please sign in first to access that page.";
     res.render("login", templateVars);
   }
+  console.log(urlDatabase);
 });
 
 /**
  * GET /urls/:id
- * Show the page for the newly created url
+ * Show individual shortURL page
  */
 app.get("/urls/:id", (req, res) => {
   const { user_id, email, password } = getUserInfo(req);
+
   const templateVars = {
+    urls: getUserUrls(user_id),
     id: req.params.id,
-    longURL: urlDatabase[req.params.id],
     user_id,
     email,
     password,
     error: null,
   };
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
 
-  console.log(templateVars);
-
-  if (!urlDatabase[templateVars.id]) {
-    // If the shortURL id does not exist in the database, render error
-    res.status(400).render("error", templateVars);
+    if (user) {
+      // If the shortURL id exists in the urlDatabase
+      if (urlDatabase[templateVars.id]) {
+        // If the shortURL id exists in the userUrlDatabase, then allow the request
+        if (templateVars.urls[templateVars.id]) {
+          res.render("urls_show", templateVars);
+        } else {
+          // If the shortURL id dose not exist in the userUrlDatabase, redirect the user to the urls page
+          res.redirect("/urls");
+        }
+      } else {
+        // If it does not exist, render error
+        res.status(400).render("error", templateVars);
+      }
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.redirect("login", templateVars);
+    }
   } else {
-    // If it exists, then allow the request
-    res.render("urls_show", templateVars);
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
   }
 });
 
@@ -390,7 +487,7 @@ app.get("/u/:id", (req, res) => {
   const { user_id, email, password } = getUserInfo(req);
   const templateVars = {
     id: req.params.id,
-    longURL: urlDatabase[req.params.id],
+    longURL: urlDatabase[req.params.id].longURL,
     user_id,
     email,
     password,
@@ -412,9 +509,45 @@ app.get("/u/:id", (req, res) => {
  */
 app.post("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
-  const longURL = req.body.newLongURL;
-  urlDatabase[shortURL] = longURL;
-  res.redirect("/urls");
+
+  // Get user info
+  const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
+  const templateVars = {
+    urls: getUserUrls(user_id),
+    user_id,
+    email,
+    password,
+    error: null,
+  };
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, check if the shortURL id is in the userURLDatabase and allow the request
+      if (templateVars.urls[shortURL]) {
+        const newLongURL = req.body.newLongURL;
+        urlDatabase[shortURL].longURL = newLongURL;
+        res.redirect("/urls");
+      } else {
+        // If the shortURL id is in the userURLDatabase, show error message
+        res.status(401).render("error", templateVars);
+      }
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.redirect("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
+  }
 });
 
 /**
@@ -422,8 +555,45 @@ app.post("/urls/:id", (req, res) => {
  * Handle the DELETE url submission form
  */
 app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id];
-  res.redirect("/urls");
+  const shortURL = req.params.id;
+
+  // Get user info
+  const { user_id, email, password } = getUserInfo(req);
+
+  // Construct the template
+  const templateVars = {
+    urls: getUserUrls(user_id),
+    user_id,
+    email,
+    password,
+    error: null,
+  };
+
+  if (user_id) {
+    // If a user_id is detected in the cookies
+    const user = users[user_id]; // Attempt to get user data from the database
+
+    if (user) {
+      // If user data is found, check if the shortURL id is in the userURLDatabase and allow the request
+      if (templateVars.urls[shortURL]) {
+        delete urlDatabase[req.params.id];
+        res.redirect("/urls");
+      } else {
+        // If the shortURL id is in the userURLDatabase, show error message
+        res.status(401).render("error", templateVars);
+      }
+    } else {
+      // If user data is not found, redirect to login and show error
+      res.status(401);
+      templateVars.error = "Please sign in first to access that page.";
+      res.redirect("login", templateVars);
+    }
+  } else {
+    // If user_id is not detected, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please sign in first to access that page.";
+    res.render("login", templateVars);
+  }
 });
 
 ///////////////////////////////////////////////////////////////////////////////
