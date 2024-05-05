@@ -84,7 +84,7 @@ const generateUniqueId = () => {
 const getUserInfo = (req) => {
   const user_id = req.cookies.user_id;
   const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].password : null;
+  const password = users[user_id] ? users[user_id].hashedPassword : null;
   return { user_id, email, password };
 };
 
