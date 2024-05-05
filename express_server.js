@@ -278,17 +278,24 @@ app.post("/login", (req, res) => {
     templateVars.error =
       "The account was not found. Please register an account first.";
     res.render("register", templateVars);
-  } else if (!bcrypt.compareSync(password, user.hashedPassword)) {
-    // If user provided password does not match the one in the database, return an error
-    res.status(403);
-    templateVars.error = "Password is incorrect!";
-    res.render("login", templateVars);
   } else {
-    // Get user_id
-    const user_id = user.id;
+    try {
+      if (!bcrypt.compareSync(password, user.hashedPassword)) {
+        // If user provided password does not match the one in the database, return an error
+        res.status(403);
+        templateVars.error = "Password is incorrect!";
+        res.render("login", templateVars);
+      } else {
+        // Get user_id
+        const user_id = user.id;
 
-    res.cookie("user_id", user_id);
-    res.redirect("/urls");
+        res.cookie("user_id", user_id);
+        res.redirect("/urls");
+      }
+    } catch (error) {
+      // Handle bcrypt error
+      res.status(500).send("Internal Server Error");
+    }
   }
 });
 
