@@ -7,6 +7,7 @@
 const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs/dist/bcrypt");
 
 ///////////////////////////////////////////////////////////////////////////////
 // Set-Up / Initialize
@@ -56,17 +57,17 @@ const users = {
   aJ48lW: {
     id: "aJ48lW",
     email: "user1@example.com",
-    password: "p",
+    hashedPassword: '$2a$10$.IgPiVpfS0epKdTSITGImegbTOn0RoSQF7aJj1fQCg4ef90RkGZTW',
   },
   q0ju1d: {
     id: "q0ju1d",
     email: "user2@example.com",
-    password: "d",
+    hashedPassword: '$2a$10$4.RsNwoi.RY5vj9VbOb06OVcs31fHASDr/HIGubimpqbu6WY9lhZq',
   },
   tra1dh: {
     id: "tra1dh",
     email: "somtoufondu@gmail.com",
-    password: "1",
+    hashedPassword: '$2a$10$3r/AImilECJRH6AqGAteIuYq79PXVeh0Fd7A.C.WKAXLGYY3e.pYO',
   },
 };
 
@@ -196,6 +197,7 @@ app.get("/register", (req, res) => {
  */
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const templateVars = { email };
 
   if (!email || !password) {
@@ -207,17 +209,19 @@ app.post("/register", (req, res) => {
   } else if (getUserByEmail(email)) {
     // If user email already exists
     res.status(400);
+    templateVars.email = null;
     templateVars.error = "User already exists. Please login";
     res.render("login", templateVars);
   } else {
     const user_id = generateUniqueId(); // Generate a unique id for new user
 
-    users[user_id] = { id: user_id, email, password }; // Add user info to users database
+    users[user_id] = { id: user_id, email, hashedPassword }; // Add user info to users database
 
     res.cookie("user_id", user_id); // Set user_id cookie and redirect to /urls page
 
     res.redirect("/urls");
   }
+  console.log(users);
 });
 
 /**
@@ -270,10 +274,11 @@ app.post("/login", (req, res) => {
   } else if (!user) {
     // If user email does not exist, return an error
     res.status(403);
+    templateVars.email = null;
     templateVars.error =
       "The account was not found. Please register an account first.";
     res.render("register", templateVars);
-  } else if (password !== user.password) {
+  } else if (!bcrypt.compareSync(password, user.hashedPassword)) {
     // If user provided password does not match the one in the database, return an error
     res.status(403);
     templateVars.error = "Password is incorrect!";
