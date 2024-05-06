@@ -44,7 +44,7 @@ const urlDatabase = {
     userID: "q0ju1d",
   },
   x5YZab: {
-    longURL: "https://www.example.com",
+    longURL: "example.com",
     userID: "aJ48lW", // Same userID as b6UTxQ
   },
   p9RstU: {
@@ -57,17 +57,20 @@ const users = {
   aJ48lW: {
     id: "aJ48lW",
     email: "user1@example.com",
-    hashedPassword: '$2a$10$.IgPiVpfS0epKdTSITGImegbTOn0RoSQF7aJj1fQCg4ef90RkGZTW',
+    hashedPassword:
+      "$2a$10$.IgPiVpfS0epKdTSITGImegbTOn0RoSQF7aJj1fQCg4ef90RkGZTW",
   },
   q0ju1d: {
     id: "q0ju1d",
     email: "user2@example.com",
-    hashedPassword: '$2a$10$4.RsNwoi.RY5vj9VbOb06OVcs31fHASDr/HIGubimpqbu6WY9lhZq',
+    hashedPassword:
+      "$2a$10$4.RsNwoi.RY5vj9VbOb06OVcs31fHASDr/HIGubimpqbu6WY9lhZq",
   },
   tra1dh: {
     id: "tra1dh",
     email: "somtoufondu@gmail.com",
-    hashedPassword: '$2a$10$3r/AImilECJRH6AqGAteIuYq79PXVeh0Fd7A.C.WKAXLGYY3e.pYO',
+    hashedPassword:
+      "$2a$10$3r/AImilECJRH6AqGAteIuYq79PXVeh0Fd7A.C.WKAXLGYY3e.pYO",
   },
 };
 
@@ -84,8 +87,7 @@ const generateUniqueId = () => {
 const getUserInfo = (req) => {
   const user_id = req.cookies.user_id;
   const email = users[user_id] ? users[user_id].email : null;
-  const password = users[user_id] ? users[user_id].hashedPassword : null;
-  return { user_id, email, password };
+  return { user_id, email };
 };
 
 // Function to get user by email
@@ -119,8 +121,8 @@ const isUserLoggedIn = (req) => {
 };
 
 // Function to check if a user owns a specific URL
-const isUserOwnedURL = (user_id, shortURL) => {
-  return urlDatabase[shortURL] && urlDatabase[shortURL].userID === user_id;
+const isUserOwnedURL = (id, user_id) => {
+  return urlDatabase[id] && urlDatabase[id].userID === user_id;
 };
 
 // Function to delete all cookies
@@ -132,6 +134,18 @@ const cleanup = (req, res) => {
   cookieNames.forEach((cookieName) => {
     res.clearCookie(cookieName);
   });
+};
+
+// Function to construct template variables
+const constructTemplateVars = (req) => {
+  const { user_id, email } = getUserInfo(req);
+
+  return {
+    urls: getUserUrls(user_id),
+    id: req.params.id,
+    user_id,
+    email,
+  };
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,17 +177,8 @@ app.get("/hello", (req, res) => {
  * Show the client the "New User Registration" page.
  */
 app.get("/register", (req, res) => {
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     // Check whether there is data in their urls database
@@ -198,7 +203,8 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
   const hashedPassword = bcrypt.hashSync(password, 10);
-  const templateVars = { email };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (!email || !password) {
     // If email and password fields are empty
@@ -221,7 +227,6 @@ app.post("/register", (req, res) => {
 
     res.redirect("/urls");
   }
-  console.log(users);
 });
 
 /**
@@ -229,17 +234,8 @@ app.post("/register", (req, res) => {
  * Show the client the sign-in page.
  */
 app.get("/login", (req, res) => {
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     // Check whether there is data in their urls database
@@ -263,9 +259,12 @@ app.get("/login", (req, res) => {
  */
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const templateVars = { email };
-  const user = getUserByEmail(email); // Get user data
-
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
+  
+  // Get user data
+  const user = getUserByEmail(email);
+  
   if (!email || !password) {
     // If email and password fields are empty
     res.status(400);
@@ -283,6 +282,7 @@ app.post("/login", (req, res) => {
       if (!bcrypt.compareSync(password, user.hashedPassword)) {
         // If user provided password does not match the one in the database, return an error
         res.status(403);
+        templateVars.email = null;
         templateVars.error = "Password is incorrect!";
         res.render("login", templateVars);
       } else {
@@ -317,17 +317,8 @@ app.post("/logout", (req, res) => {
  * Show the urls page
  */
 app.get("/urls", (req, res) => {
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     // Check whether there is data in their urls database
@@ -345,7 +336,6 @@ app.get("/urls", (req, res) => {
     templateVars.error = "Please login first to access that page.";
     res.render("login", templateVars);
   }
-  console.log(templateVars);
 });
 
 /**
@@ -353,17 +343,8 @@ app.get("/urls", (req, res) => {
  * Show the page for the new url form
  */
 app.get("/urls/new", (req, res) => {
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: urlDatabase,
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     res.render("urls_new", templateVars);
@@ -380,22 +361,13 @@ app.get("/urls/new", (req, res) => {
  * Handle the NEW url submission form
  */
 app.post("/urls", (req, res) => {
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    id: req.params.id,
-    user_id,
-    email,
-    password,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     const shortURL = generateUniqueId();
     const longURL = req.body.longURL;
-    const userID = user_id;
+    const userID = templateVars.user_id;
     urlDatabase[shortURL] = { longURL, userID }; // Add new URL to database
     res.redirect(`/urls/${shortURL}`); // Redirect to the new URL page
   } else {
@@ -404,7 +376,6 @@ app.post("/urls", (req, res) => {
     templateVars.error = "Please login first to access that page.";
     res.render("login", templateVars);
   }
-  console.log(urlDatabase);
 });
 
 /**
@@ -412,19 +383,11 @@ app.post("/urls", (req, res) => {
  * Show individual shortURL page
  */
 app.get("/urls/:id", (req, res) => {
-  const { user_id, email, password } = getUserInfo(req);
-
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    id: req.params.id,
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
-    if (isUserOwnedURL(user_id, templateVars.id)) {
+    if (isUserOwnedURL(templateVars.id, templateVars.user_id)) {
       res.render("urls_show", templateVars);
     } else {
       res.status(400).render("error", templateVars);
@@ -442,15 +405,9 @@ app.get("/urls/:id", (req, res) => {
  * Redirect to the longURL page
  */
 app.get("/u/:id", (req, res) => {
-  const { user_id, email, password } = getUserInfo(req);
-  const templateVars = {
-    id: req.params.id,
-    longURL: urlDatabase[req.params.id].longURL,
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
+
 
   if (!urlDatabase[templateVars.id]) {
     // If the shortURL does not exist in the database, render error
@@ -468,17 +425,8 @@ app.get("/u/:id", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
 
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     // If user is logged in, check if the shortURL id is in the userURLDatabase and allow the request
@@ -505,28 +453,19 @@ app.post("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const shortURL = req.params.id;
 
-  // Get user info
-  const { user_id, email, password } = getUserInfo(req);
-
-  // Construct the template
-  const templateVars = {
-    urls: getUserUrls(user_id),
-    user_id,
-    email,
-    password,
-    error: null,
-  };
+  const templateVars = constructTemplateVars(req);
+  templateVars.error = null;
 
   if (isUserLoggedIn(req)) {
     // If user is logged in, check if the shortURL id is in the userURLDatabase and allow the request
-      if (templateVars.urls[shortURL]) {
-        delete urlDatabase[req.params.id];
-        res.redirect("/urls");
-      } else {
-        // If the shortURL id is in the userURLDatabase, show error message
-        res.status(401).render("error", templateVars);
-      }
+    if (templateVars.urls[shortURL]) {
+      delete urlDatabase[req.params.id];
+      res.redirect("/urls");
     } else {
+      // If the shortURL id is in the userURLDatabase, show error message
+      res.status(401).render("error", templateVars);
+    }
+  } else {
     // If user_id is not detected, redirect to login and show error
     res.status(401);
     templateVars.error = "Please login first to access that page.";
