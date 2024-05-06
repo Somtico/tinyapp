@@ -37,27 +37,7 @@ app.use(
   })
 );
 
-///////////////////////////////////////////////////////////////////////////////
-// Routes
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-// Plain Text, JSON and HTML Routes
-///////////////////////////////////////////////////////////////////////////////
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>");
-});
-
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 // User Registration / Login / Logout Routes
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -201,6 +181,32 @@ app.post("/logout", (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////
 // URLs Routes
 ///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * GET home page
+ * Show the urls page
+ */
+app.get("/", (req, res) => {
+  const templateVars = helpers.constructTemplateVars(req);
+  templateVars.error = null;
+
+  if (helpers.isUserLoggedIn(req)) {
+    // Check whether there is data in their urls database
+    if (!Object.keys(templateVars.urls).length) {
+      templateVars.error =
+        "Your short URLs list is empty. Create one now to begin your list.";
+      res.render("urls_new", templateVars);
+    } else {
+      // If userUrlDatabase is not empty, show only the short URLs created by the user
+      res.render("urls_index", templateVars);
+    }
+  } else {
+    // If user is not logged in, redirect to login and show error
+    res.status(401);
+    templateVars.error = "Please login first to access that page.";
+    res.render("login", templateVars);
+  }
+});
 
 /**
  * GET /urls
