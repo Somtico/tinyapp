@@ -23,7 +23,7 @@
           <p style="color: red;"><%= error %></p>
         <% } %>
         <p class="card-text">
-          Short URL ID: <a href="<%= urls[id] %>"><%= id %></a>
+          Short URL ID: <a href="<%= urls[id].startsWith('http') ? urls[id] : 'http://' + urls[id] %>"><%= id %></a>
         </p>
       </div>
     </div>
