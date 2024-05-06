@@ -18,9 +18,13 @@ const getUserInfo = (req) => {
 // Function to get user by email
 const getUserByEmail = (email, users) => {
   for (const userId in users) {
-    if (users[userId]["email"] === email) {
+    if (users[userId]["email"].toLowerCase() === email.toLowerCase()) {
       const user = users[userId];
-      return user;
+      return {
+        id: user.id,
+        email: user.email,
+        hashedPassword: user.hashedPassword,
+      };
     }
   }
   return null;
