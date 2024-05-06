@@ -6,7 +6,7 @@
 
 const express = require("express");
 const morgan = require("morgan");
-const cookieParser = require("cookie-parser");
+const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs/dist/bcrypt");
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -28,7 +28,12 @@ app.set("view engine", "ejs");
 
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(
+  cookieSession({
+    name: "session",
+    keys: ["key1", "key2"],
+  })
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Databases
@@ -85,7 +90,7 @@ const generateUniqueId = () => {
 
 // Function to get user information
 const getUserInfo = (req) => {
-  const user_id = req.cookies.user_id;
+  const user_id = req.session.user_id;
   const email = users[user_id] ? users[user_id].email : null;
   return { user_id, email };
 };
@@ -116,24 +121,13 @@ const getUserUrls = (user_id) => {
 
 // Function to check if a user is logged in
 const isUserLoggedIn = (req) => {
-  const user_id = req.cookies.user_id;
+  const user_id = req.session.user_id;
   return user_id && users[user_id];
 };
 
 // Function to check if a user owns a specific URL
 const isUserOwnedURL = (id, user_id) => {
   return urlDatabase[id] && urlDatabase[id].userID === user_id;
-};
-
-// Function to delete all cookies
-const cleanup = (req, res) => {
-  // Get all cookie names
-  const cookieNames = Object.keys(req.cookies);
-
-  // Delete each cookie
-  cookieNames.forEach((cookieName) => {
-    res.clearCookie(cookieName);
-  });
 };
 
 // Function to construct template variables
@@ -219,11 +213,13 @@ app.post("/register", (req, res) => {
     templateVars.error = "User already exists. Please login";
     res.render("login", templateVars);
   } else {
-    const user_id = generateUniqueId(); // Generate a unique id for new user
+    const user_id = generateUniqueId();
 
-    users[user_id] = { id: user_id, email, hashedPassword }; // Add user info to users database
+    // Add user info to users database
+    users[user_id] = { id: user_id, email, hashedPassword };
 
-    res.cookie("user_id", user_id); // Set user_id cookie and redirect to /urls page
+    // Set user session
+    req.session.user_id = user_id;
 
     res.redirect("/urls");
   }
@@ -261,10 +257,10 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const templateVars = constructTemplateVars(req);
   templateVars.error = null;
-  
+
   // Get user data
   const user = getUserByEmail(email);
-  
+
   if (!email || !password) {
     // If email and password fields are empty
     res.status(400);
@@ -286,10 +282,8 @@ app.post("/login", (req, res) => {
         templateVars.error = "Password is incorrect!";
         res.render("login", templateVars);
       } else {
-        // Get user_id
-        const user_id = user.id;
-
-        res.cookie("user_id", user_id);
+        // If valid, set session data
+        req.session.user_id = user.id;
         res.redirect("/urls");
       }
     } catch (error) {
@@ -304,7 +298,8 @@ app.post("/login", (req, res) => {
  * Handle the sign-out form SUBMISSION!
  */
 app.post("/logout", (req, res) => {
-  cleanup(req, res);
+  // Clear session data
+  req.session = null;
   res.redirect("/login");
 });
 
@@ -407,7 +402,6 @@ app.get("/urls/:id", (req, res) => {
 app.get("/u/:id", (req, res) => {
   const templateVars = constructTemplateVars(req);
   templateVars.error = null;
-
 
   if (!urlDatabase[templateVars.id]) {
     // If the shortURL does not exist in the database, render error
