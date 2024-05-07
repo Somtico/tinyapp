@@ -300,8 +300,16 @@ app.get("/u/:id", (req, res) => {
     // If the shortURL does not exist in the database, render error
     res.status(400).render("error", templateVars);
   } else {
-    // If it exists, then allow the request
-    res.redirect(templateVars.longURL);
+    let longURL = urlDatabase[templateVars.id].longURL;
+    
+    // Check if longURL starts with "http://" or "https://"
+    if (!longURL.startsWith("http://") && !longURL.startsWith("https://")) {
+      // If not, prepend "http://"
+      longURL = "http://" + longURL;
+    }
+  
+    // Allow the request
+    res.redirect(longURL);
   }
 });
 
