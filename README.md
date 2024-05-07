@@ -15,11 +15,11 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 ## Final Product
 
-Login page:
-!["Screenshot of registration page"](./docs/screenshots/register-page.png)
+Registration page:
+!["Screenshot of registration page"](https://github.com/Somtico/tinyapp/blob/main/docs/screenshots/register-page.png?raw=true)
 
 URLs page:
-!["Screenshot of URLs page"](./docs/screenshots/urls-page.png)
+!["Screenshot of URLs page"](https://github.com/Somtico/tinyapp/blob/main/docs/screenshots/urls-page.png?raw=true)
 
 ## Dependencies
 
