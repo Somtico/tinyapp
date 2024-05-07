@@ -52,15 +52,8 @@ app.get("/register", (req, res) => {
   templateVars.error = null;
 
   if (helpers.isUserLoggedIn(req)) {
-    // Check whether there is data in their urls database
-    if (!Object.keys(templateVars.urls).length) {
-      templateVars.error =
-        "Your short URLs list is empty. Create one now to begin your list.";
-      res.render("urls_new", templateVars);
-    } else {
-      // If userUrlDatabase is not empty, show only the short URLs created by the user
-      res.render("urls_index", templateVars);
-    }
+    // Redirect to the URLs page
+    res.status(302).redirect("/urls");
   } else {
     // If user is not logged in, allow request
     res.render("register", templateVars);
@@ -112,7 +105,7 @@ app.get("/login", (req, res) => {
 
   if (helpers.isUserLoggedIn(req)) {
     // Redirect to the URLs page
-      res.status(302).redirect("/urls");
+    res.status(302).redirect("/urls");
   } else {
     // If user is not logged in, allow request
     templateVars.error = req.query.error;
@@ -126,13 +119,11 @@ app.get("/login", (req, res) => {
  */
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  console.log(email, password);
   const templateVars = helpers.constructTemplateVars(req);
   templateVars.error = null;
 
   // Get user data
   const user = helpers.getUserByEmail(email, users);
-  console.log("user:", user);
 
   if (!email || !password) {
     // If email and password fields are empty
@@ -149,7 +140,6 @@ app.post("/login", (req, res) => {
   } else {
     try {
       const passwordMatch = bcrypt.compareSync(password, user.hashedPassword);
-      console.log("passwordMatch:", passwordMatch)
       if (!passwordMatch) {
         // If user provided password does not match the one in the database, return an error
         res.status(401);
@@ -159,6 +149,7 @@ app.post("/login", (req, res) => {
       } else {
         // If valid, set session data
         req.session.user_id = user.id;
+
         res.redirect("/urls");
       }
     } catch (error) {
@@ -205,7 +196,11 @@ app.get("/urls", (req, res) => {
   if (helpers.isUserLoggedIn(req)) {
     // Check whether there is data in their urls database
     if (!Object.keys(templateVars.urls).length) {
-      res.status(302).redirect("/urls/new?error=Your short URLs list is empty. Create one now to begin your list");
+      res
+        .status(302)
+        .redirect(
+          "/urls/new?error=Your short URLs list is empty. Create one now to begin your list."
+        );
     } else {
       // If userUrlDatabase is not empty, show only the short URLs created by the user
       res.render("urls_index", templateVars);
@@ -293,13 +288,13 @@ app.get("/u/:id", (req, res) => {
     res.status(400).render("error", templateVars);
   } else {
     let longURL = urlDatabase[templateVars.id].longURL;
-    
+
     // Check if longURL starts with "http://" or "https://"
     if (!longURL.startsWith("http://") && !longURL.startsWith("https://")) {
       // If not, prepend "http://"
       longURL = "http://" + longURL;
     }
-  
+
     // Allow the request
     res.redirect(longURL);
   }
@@ -371,8 +366,10 @@ process.on("SIGINT", () => {
 });
 
 // Listen for server startup command
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });
 
 module.exports = { users, urlDatabase };
+
+
