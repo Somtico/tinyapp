@@ -111,15 +111,8 @@ app.get("/login", (req, res) => {
   templateVars.error = null;
 
   if (helpers.isUserLoggedIn(req)) {
-    // Check whether there is data in their urls database
-    if (!Object.keys(templateVars.urls).length) {
-      templateVars.error =
-        "Your short URLs list is empty. Create one now to begin your list.";
-      res.render("urls_new", templateVars);
-    } else {
-      // If userUrlDatabase is not empty, show only the short URLs created by the user
-      res.render("urls_index", templateVars);
-    }
+    // Redirect to the URLs page
+      res.status(302).redirect("/urls");
   } else {
     // If user is not logged in, allow request
     templateVars.error = req.query.error;
@@ -212,9 +205,7 @@ app.get("/urls", (req, res) => {
   if (helpers.isUserLoggedIn(req)) {
     // Check whether there is data in their urls database
     if (!Object.keys(templateVars.urls).length) {
-      templateVars.error =
-        "Your short URLs list is empty. Create one now to begin your list.";
-      res.render("urls_new", templateVars);
+      res.status(302).redirect("/urls/new?error=Your short URLs list is empty. Create one now to begin your list");
     } else {
       // If userUrlDatabase is not empty, show only the short URLs created by the user
       res.render("urls_index", templateVars);
@@ -236,11 +227,12 @@ app.get("/urls/new", (req, res) => {
   templateVars.error = null;
 
   if (helpers.isUserLoggedIn(req)) {
+    templateVars.error = req.query.error;
     res.render("urls_new", templateVars);
   } else {
     // If user is not logged in, redirect to login and show error
     res.status(302);
-    res.redirect("/login?error=Please login first to access that page.");
+    res.redirect("/login?error=Please login first to access that page");
   }
 });
 
