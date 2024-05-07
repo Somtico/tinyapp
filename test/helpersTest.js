@@ -2,13 +2,7 @@
 
 const { assert } = require("chai");
 
-const {
-  generateUniqueId,
-  getUserByEmail,
-  isUserLoggedIn,
-  isUserOwnedURL,
-  constructTemplateVars,
-} = require("../helpers");
+const { getUserByEmail } = require("../helpers");
 
 const testUsers = {
   userRandomID: {
