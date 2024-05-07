@@ -122,6 +122,7 @@ app.get("/login", (req, res) => {
     }
   } else {
     // If user is not logged in, allow request
+    templateVars.error = req.query.error;
     res.render("login", templateVars);
   }
 });
@@ -132,11 +133,13 @@ app.get("/login", (req, res) => {
  */
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
+  console.log(email, password);
   const templateVars = helpers.constructTemplateVars(req);
   templateVars.error = null;
 
   // Get user data
   const user = helpers.getUserByEmail(email, users);
+  console.log("user:", user);
 
   if (!email || !password) {
     // If email and password fields are empty
@@ -145,16 +148,18 @@ app.post("/login", (req, res) => {
     res.render("login", templateVars);
   } else if (!user) {
     // If user email does not exist, return an error
-    res.status(403);
+    res.status(401);
     templateVars.email = null;
     templateVars.error =
       "The account was not found. Please register an account first.";
     res.render("register", templateVars);
   } else {
     try {
-      if (!bcrypt.compareSync(password, user.hashedPassword)) {
+      const passwordMatch = bcrypt.compareSync(password, user.hashedPassword);
+      console.log("passwordMatch:", passwordMatch)
+      if (!passwordMatch) {
         // If user provided password does not match the one in the database, return an error
-        res.status(403);
+        res.status(401);
         templateVars.email = null;
         templateVars.error = "Password is incorrect!";
         res.render("login", templateVars);
@@ -189,7 +194,11 @@ app.post("/logout", (req, res) => {
  * Show the urls page
  */
 app.get("/", (req, res) => {
-  res.redirect("/urls");
+  if (helpers.isUserLoggedIn(req)) {
+    res.redirect("/urls");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 /**
@@ -212,7 +221,7 @@ app.get("/urls", (req, res) => {
     }
   } else {
     // If user is not logged in, redirect to login and show error
-    res.status(401);
+    res.status(302);
     templateVars.error = "Please login first to access that page.";
     res.render("login", templateVars);
   }
@@ -230,9 +239,8 @@ app.get("/urls/new", (req, res) => {
     res.render("urls_new", templateVars);
   } else {
     // If user is not logged in, redirect to login and show error
-    res.status(401);
-    templateVars.error = "Please login first to access that page.";
-    res.render("login", templateVars);
+    res.status(302);
+    res.redirect("/login?error=Please login first to access that page.");
   }
 });
 
@@ -270,11 +278,11 @@ app.get("/urls/:id", (req, res) => {
     if (helpers.isUserOwnedURL(templateVars.id, templateVars.user_id)) {
       res.render("urls_show", templateVars);
     } else {
-      res.status(400).render("error", templateVars);
+      res.status(403).render("error", templateVars);
     }
   } else {
     // If user is not logged in, redirect to login and show error
-    res.status(401);
+    res.status(302);
     templateVars.error = "Please login first to access that page.";
     res.render("login", templateVars);
   }
@@ -314,7 +322,7 @@ app.post("/urls/:id", (req, res) => {
       urlDatabase[shortURL].longURL = newLongURL;
       res.redirect("/urls");
     } else {
-      // If the shortURL id is in the userURLDatabase, show error message
+      // If the shortURL id is not in the userURLDatabase, show error message
       res.status(401).render("error", templateVars);
     }
   } else {
